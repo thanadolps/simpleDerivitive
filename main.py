@@ -9,11 +9,14 @@ if False:
 
     param = {x : 2, y : 1, z : 3}
 
-    print(A.eval(param))
-    print(A.gradient(param, x))
-    print(A)
+    #print(A.eval(param))
+    #print(A.gradient(param, x))
+    #print(A)
+    draw_tree(A)
 else:
     G = parse(input())
+    print(G)
+    draw_tree(G)
 
 
 

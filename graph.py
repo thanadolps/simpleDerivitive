@@ -20,6 +20,10 @@ class Graph(metaclass=ABCMeta):
     def gradient(self, dic, var):
         raise NotImplementedError('users must define gradient to use this base class')
 
+    @abstractmethod
+    def childs(self):
+        raise NotImplementedError('users must define childs to use this base class')
+
     @staticmethod
     def constancy(x):
         if isinstance(x, Graph):
@@ -41,6 +45,15 @@ class Graph(metaclass=ABCMeta):
 
     def __pow__(self, power, modulo=None):
         return Pow(self, power)
+
+tree_sep = '|-- '
+def draw_tree(graph : Graph, layer = 1):
+
+    print(f"{tree_sep:>{len(tree_sep)*layer}}{repr(graph)}")
+
+    if graph.childs() is not None:
+        for g in graph.childs():
+            draw_tree(g, layer + 1)
 
 
 GraphInput = Union[Number, Graph]
@@ -68,6 +81,12 @@ class Variable(Graph):
         else:
             return 0
 
+    def childs(self):
+        return None
+
+    def __repr__(self):
+        return "Variable {}".format(self.name)
+
     def __str__(self):
         return str(self.name)
 
@@ -83,6 +102,12 @@ class Constance(Graph):
     def gradient(self, dic, var):
         # k' = 0
         return 0
+
+    def childs(self):
+        return None
+
+    def __repr__(self):
+        return str(self.x)
 
     def __str__(self):
         return str(self.x)
@@ -109,6 +134,12 @@ class Add(Graph):
     def gradient(self, dic, var):
         return sum(map(lambda x: x.gradient(dic, var), self.g))
 
+    def childs(self):
+        return self.g
+
+    def __repr__(self):
+        return "Add"
+
     def __str__(self):
         return " + ".join(map(lambda x : str(x), self.g))
 
@@ -124,6 +155,12 @@ class Sub(Graph):
 
     def gradient(self, x : Number, var):
         return self.g1.gradient(x, var) - self.g2.gradient(x, var)
+
+    def childs(self):
+        return self.g1, self.g2
+
+    def __repr__(self):
+        return "Sub"
 
     def __str__(self):
         return "{} - {}".format(self.g1, self.g2)
@@ -156,6 +193,12 @@ class Mul(Graph):
         #  f        g        h
         return sum(map(lambda x : x.gradient(dic, var) * all_mult / x.eval(dic), self.g))
 
+    def childs(self):
+        return self.g
+
+    def __repr__(self):
+        return "Mul"
+
     def __str__(self):
         return " * ".join(map(lambda x: ("{}" if isinstance(x, Variable) or isinstance(x, Constance)
                                          else "({})").format(x), self.g))
@@ -172,6 +215,12 @@ class Div(Graph):
     def gradient(self, dic, var):
         b = self.g2.eval(dic)
         return (b * self.g1.gradient(dic, var) - self.g1.eval(dic) * self.g2.gradient(dic,var)) / b**2
+
+    def childs(self):
+        return self.g1, self.g2
+
+    def __repr__(self):
+        return "Div"
 
     def __str__(self):
         return "{} / {}".format(brace(self.g1), brace(self.g2))
@@ -194,6 +243,12 @@ class Pow(Graph):
 
         # https://www.wolframalpha.com/input/?i=Differential+(f(x))%5Eg(x)
         return (f**(g-1)) * (g * fd + (0 if not isinstance(f, Graph) else (f * log(f) * gd)))
+
+    def childs(self):
+        return self.g1, self.g2
+
+    def __repr__(self):
+        return "Pow"
 
     def __str__(self):
         return "{} ^ {}".format(brace(self.g1), brace(self.g2))
