@@ -1,12 +1,13 @@
 from abc import ABCMeta, abstractmethod
-from typing import Union
+from typing import Union, List
 from math import log
+from functools import reduce
 
 # TODO [later] : Format __str__ output algorithum
 # TODO [later] : Optimize Graph Calculation - mainly duplication reusing
 # TODO : Add More Function
 
-Number = Union[int,float]
+Number = Union[int, float]
 
 
 class Graph(metaclass=ABCMeta):
@@ -42,7 +43,6 @@ class Graph(metaclass=ABCMeta):
         return Pow(self, power)
 
 
-
 GraphInput = Union[Number, Graph]
 
 
@@ -55,11 +55,10 @@ class Variable(Graph):
 
         x = dic.get(self)
 
-        if x == None:
+        if x is None:
             raise ValueError("input dictionary doesn't contain value for {} {}".format(self.name, x))
 
         return x
-
 
     def gradient(self, dic, var):
 
@@ -81,7 +80,7 @@ class Constance(Graph):
     def eval(self, dic):
         return self.x
 
-    def gradient(self, dic , var):
+    def gradient(self, dic, var):
         # k' = 0
         return 0
 
@@ -89,20 +88,29 @@ class Constance(Graph):
         return str(self.x)
 
 
+def brace(x):
+    return ("{}" if isinstance(x, Variable) or isinstance(x, Constance) else "({})").format(x)
+
+
 class Add(Graph):
 
-    def __init__(self, g1: GraphInput, g2: GraphInput):
-        self.g1 : Graph = self.constancy(g1)
-        self.g2 : Graph = self.constancy(g2)
+    def __init__(self, *args):
+        self.g = []
+
+        for i in args:
+            if isinstance(i, Add):
+                self.g += i.g
+            else:
+                self.g.append(self.constancy(i))
 
     def eval(self, dic) -> Number:
-        return self.g1.eval(dic) + self.g2.eval(dic)
+        return sum(map(lambda x: x.eval(dic), self.g))
 
-    def gradient(self, dic , var):
-        return self.g1.gradient(dic, var) + self.g2.gradient(dic, var)
+    def gradient(self, dic, var):
+        return sum(map(lambda x: x.gradient(dic, var), self.g))
 
     def __str__(self):
-        return "{} + {}".format(self.g1, self.g2)
+        return " + ".join(map(lambda x : str(x), self.g))
 
 
 class Sub(Graph):
@@ -122,19 +130,35 @@ class Sub(Graph):
 
 
 class Mul(Graph):
-    def __init__(self, g1: GraphInput, g2: GraphInput):
-        self.g1 : Graph = self.constancy(g1)
-        self.g2 : Graph = self.constancy(g2)
+    def __init__(self, g1: Graph , g2: Graph, *args):
+        self.g : List[Graph] = []
+
+        self.add(g1)
+        self.add(g2)
+        for i in args:
+            self.add(i)
+
+    def add(self, x):
+            if isinstance(x, Mul):
+                self.g += x.g
+            else:
+                self.g.append(self.constancy(x))
 
     def eval(self, dic) -> Number:
-        return self.g1.eval(dic) * self.g2.eval(dic)
+        return reduce(lambda x, y : x * y, map(lambda x : x.eval(dic), self.g))
 
     def gradient(self, dic, var):
-        # fg' + f'g
-        return self.g1.eval(dic) * self.g2.gradient(dic, var) + self.g1.gradient(dic, var) * self.g2.eval(dic)
+
+        all_mult = self.eval(dic)  # = fgh
+
+        # fgh      fgh      fgh
+        # --- f' + --- g' + --- h'
+        #  f        g        h
+        return sum(map(lambda x : x.gradient(dic, var) * all_mult / x.eval(dic), self.g))
 
     def __str__(self):
-        return "({}) * ({})".format(self.g1, self.g2)
+        return " * ".join(map(lambda x: ("{}" if isinstance(x, Variable) or isinstance(x, Constance)
+                                         else "({})").format(x), self.g))
 
 
 class Div(Graph):
@@ -146,10 +170,11 @@ class Div(Graph):
         return self.g1.eval(dic) / self.g2.eval(dic)
 
     def gradient(self, dic, var):
-        return self.g1.eval
+        b = self.g2.eval(dic)
+        return (b * self.g1.gradient(dic, var) - self.g1.eval(dic) * self.g2.gradient(dic,var)) / b**2
 
     def __str__(self):
-        return "({}) / ({})".format(self.g1, self.g2)
+        return "{} / {}".format(brace(self.g1), brace(self.g2))
 
 
 class Pow(Graph):
@@ -171,7 +196,7 @@ class Pow(Graph):
         return (f**(g-1)) * (g * fd + (0 if not isinstance(f, Graph) else (f * log(f) * gd)))
 
     def __str__(self):
-        return "({}) ^ ({})".format(self.g1, self.g2)
+        return "{} ^ {}".format(brace(self.g1), brace(self.g2))
 
 
 
