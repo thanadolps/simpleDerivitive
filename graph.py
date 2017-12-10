@@ -3,8 +3,9 @@ from typing import Union, List
 from math import log
 from functools import reduce
 
-# TODO [later] : Format __str__ output algorithum
-# TODO [later] : Optimize Graph Calculation - mainly duplication reusing
+# TODO [later][Hard] : Optimize Graph Calculation - mainly duplication reusing
+# TODO [later] : Optimize Graph Calculation - coefficient combining
+# TODO [main] : auto derivative graph -> construct new derivative graph using current graph
 # TODO : Add More Function
 
 Number = Union[int, float]
@@ -163,7 +164,7 @@ class Sub(Graph):
         return "Sub"
 
     def __str__(self):
-        return "{} - {}".format(self.g1, self.g2)
+        return "{} - {}".format(self.g1, brace(self.g2))
 
 
 class Mul(Graph):
@@ -252,9 +253,4 @@ class Pow(Graph):
 
     def __str__(self):
         return "{} ^ {}".format(brace(self.g1), brace(self.g2))
-
-
-
-
-
 
