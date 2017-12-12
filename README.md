@@ -7,6 +7,7 @@ An attempt to build a simple partial-ish differentiator using automatic-ish diff
 This Program (when finished) will have 2 part
 - [ ] Parsing - convert string into graph [*Prase.py*]
 - [x] Differentation - using graph to calculate partial derivitive [*graph.py*]
+- [x]                - using graph to create new differentation graph [*graph.py*]
 
 #### Differentation
 Find Differentation using graph
